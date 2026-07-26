@@ -1,168 +1,230 @@
 # Cross-Sectional Alpha Research: UBL + Low-Volatility Case Study
 
-This repository contains two complementary components:
+> A China A-share case study in point-in-time factor reconstruction, cost-aware
+> portfolio construction, and robustness testing.
 
-1. A documented China A-share portfolio case study supported by aggregate
-   result tables and figures.
-2. A compact, strategy-agnostic reference package for point-in-time validation,
-   portfolio accounting, transaction costs, paired block-bootstrap comparisons,
-   and report generation.
+The research question is simple: can a slower low-volatility sleeve improve the
+risk-adjusted performance and implementation economics of a short-horizon UBL
+factor family without replacing its underlying signal?
 
-The public package begins with precomputed, directionally oriented factor
-scores. Report-derived factor implementations, licensed market data, and
-the internal security-level research engine are not redistributed.
+The repository contains a documented portfolio study and a compact,
+strategy-agnostic Python reference package. The public package begins with
+precomputed, directionally oriented factor scores. Report-derived factor
+implementations, licensed market data, security-level holdings, and the internal
+research engine are not redistributed.
 
 Reported results are simulated research results, not live performance or
 investment advice.
 
-![Net NAV comparison](examples/sample_outputs/ubl_lowvol_study/plots/01_net_nav_comparison.png)
+![Observed holdout result dashboard](examples/sample_outputs/ubl_lowvol_study/plots/00_result_at_a_glance.png)
 
-## Research Question
+## Result At A Glance
 
-Can a slower low-volatility sleeve improve the UBL family's Sharpe, drawdown,
-turnover, and transaction-cost tolerance without replacing the underlying UBL
-signal? The study compares the UBL family with a fixed 80% UBL / 20% LOWVOL_60
-risk allocation.
+The chronological research holdout contains 133 daily observations. On this
+period, the fixed 80% UBL / 20% LOWVOL portfolio raised annualized net Sharpe
+from 0.60 to 1.36 under a 10 bps-per-dollar-traded cost model. It also produced
+a higher net return, a shallower drawdown, lower average turnover, and a wider
+estimated break-even cost margin.
 
-## Observed Chronological Holdout
-
-The chronological holdout contains 133 daily observations and has now been
-viewed. It should be treated as observed evidence rather than an untouched
-out-of-sample test.
-
-On this period, the blend achieved annualized net Sharpe of 1.36 at a 0% cash
-hurdle, compared with 0.60 for UBL alone. Net return increased from 2.10% to
-4.87%, max drawdown declined from 4.82% to 4.05%, turnover declined, and the
-estimated break-even transaction cost increased from 13.12 to 17.93 bps.
-
-| Metric | UBL only | UBL + LOWVOL |
+| Observed holdout metric | UBL only | UBL + LOWVOL |
 |---|---:|---:|
+| Annualized gross Sharpe, 0% cash hurdle | 2.51 | 3.07 |
 | Annualized net Sharpe, 0% cash hurdle | 0.60 | 1.36 |
 | Net return | 2.10% | 4.87% |
-| Max drawdown | 4.82% | 4.05% |
+| Maximum drawdown | 4.82% | 4.05% |
 | Average full turnover | 0.532 | 0.462 |
 | Break-even transaction cost | 13.12 bps | 17.93 bps |
-| Fraction of paired bootstrap resamples with $\Delta \mathrm{Sharpe} > 0$ | - | 95.2% |
+| Five-day paired resamples with $\Delta \mathrm{Sharpe} > 0$ | - | 95.2% |
 
-Turnover is `sum(abs(w_t - w_t-1))` for a dollar-neutral portfolio normalized
+Gross Sharpe is reconstructed from the public net-return and transaction-cost
+columns. Full turnover is
+`sum_i abs(w_i,t - w_i,t-1)` for a dollar-neutral portfolio normalized
 to long gross +1 and short gross -1.
 
-## Interpretation And Robustness
+> The holdout has now been viewed. It is observed chronological evidence, not
+> an untouched out-of-sample test, and it cannot be reused for model selection.
 
-The observed improvement is broader than Sharpe alone: the blend also had a
-shallower drawdown, lower average turnover, and a larger estimated
-transaction-cost margin. The paired-bootstrap result is an observed-sample
-resampling frequency, not a probability of future profitability.
+The numerical inputs for this table are published in
+[headline_metrics.csv](examples/sample_outputs/ubl_lowvol_study/data/headline_metrics.csv)
+and
+[portfolio_returns.csv](examples/sample_outputs/ubl_lowvol_study/data/portfolio_returns.csv).
 
-| Additional result | Observed value |
+## Research Path
+
+The main contribution is the sequence of research decisions rather than one
+performance statistic.
+
+| Research question | Decision and evidence |
+|---|---|
+| Can the report-derived factor be evaluated without timing leakage? | Early same-period IC and group diagnostics were withdrawn. Active results require `latest_factor_input_timestamp < entry_timestamp < exit_timestamp` and next-tradable execution. |
+| Is factor direction handled consistently? | Every strategy emits an oriented `alpha_score` for which a larger value means a higher expected return. Portfolio code never independently reverses a signal. |
+| Are neighboring UBL parameters independent alphas? | Related variants were compared using score, RankIC, return, holding, and drawdown correlations. Redundant candidates were documented rather than counted as independent signals. |
+| Can short-horizon rank information survive implementation? | Turnover was attributed by sleeve, side, trade event, liquidity, and size. A no-trade rule was selected on validation data and then frozen. |
+| Does a second sleeve add economically distinct information? | Two conventional momentum definitions failed their pre-specified positive-direction tests. LOWVOL_60 entered only after a fixed portfolio-level inclusion test. |
+| Is the improvement robust to one favorable path? | The final comparison includes cost stress, execution-delay stress, paired walk-forward folds, PnL concentration, exposure checks, and paired block bootstrap. |
+
+The [UBL family study](docs/case_studies/UBL.md) describes the direction,
+timing, redundancy, and implementation decisions. The
+[candidate record](docs/candidate_outcomes.md) includes both selected and
+rejected hypotheses.
+
+## Evidence Across The Research Sample
+
+The full common sample combines training, validation, and the viewed holdout.
+It is supporting evidence rather than the headline comparison.
+
+| Full-common-sample metric | UBL only | UBL + LOWVOL |
+|---|---:|---:|
+| Annualized net Sharpe, 0% cash hurdle | 1.14 | 1.64 |
+| Net return | 13.58% | 19.20% |
+| Maximum drawdown | 5.47% | 4.30% |
+| Average full turnover | 0.552 | 0.482 |
+| Top-five-day share of arithmetic net PnL | 60.9% | 43.9% |
+
+![Net NAV comparison](examples/sample_outputs/ubl_lowvol_study/plots/01_net_nav_comparison.png)
+
+The dashed boundaries identify validation and holdout starts. The continuous
+path should not be read as one untouched investment test.
+
+![Net drawdown comparison](examples/sample_outputs/ubl_lowvol_study/plots/02_drawdown_comparison.png)
+
+The blend's defensive contribution is visible in both drawdown depth and PnL
+concentration, although performance remains uneven through time.
+
+## Cost And Paired-Resampling Evidence
+
+### Transaction-Cost Frontier
+
+![Transaction-cost frontier](examples/sample_outputs/ubl_lowvol_study/plots/03_transaction_cost_frontier.png)
+
+This is a full-common-sample stress test. At 15 bps per dollar traded, annualized
+net Sharpe is 0.12 for UBL and 0.71 for the blend. Diamonds mark estimated
+break-even costs of 15.61 and 18.77 bps. Both portfolios are negative at 20 bps.
+
+### Paired Holdout Bootstrap
+
+![Paired bootstrap Sharpe difference](examples/sample_outputs/ubl_lowvol_study/plots/04_paired_bootstrap_sharpe_difference.png)
+
+The displayed distribution uses 5,000 paired five-day moving-block resamples of
+the 133 observed holdout dates. In 95.2% of those resamples, the blend's Sharpe
+exceeds UBL's Sharpe. Across four pre-specified moving-block and stationary
+schemes, the corresponding frequency ranges from 94.6% to 95.7%.
+
+This is an observed-sample resampling frequency. It is not a probability that
+the strategy will outperform or be profitable in the future.
+
+## Robustness Boundaries
+
+| Check | Result |
 |---|---:|
 | Validation annualized net Sharpe | 1.69 |
 | Full-common-sample annualized net Sharpe | 1.64 |
 | Full-common-sample net Sharpe at 15 bps | 0.71 |
 | Paired walk-forward annualized net Sharpe | -0.07 |
-| Positive walk-forward folds | 2 / 4 |
+| Positive paired walk-forward folds | 2 / 4 |
 | One-additional-day execution-delay Sharpe | 0.46 |
-
-The result remains uneven through time. Paired walk-forward Sharpe is slightly
-negative, only two of four folds are positive, and one additional execution day
-materially weakens performance. These limits make unchanged-rule testing on new
-data more important than further tuning on the viewed sample.
 
 ![Paired walk-forward folds](examples/sample_outputs/ubl_lowvol_study/plots/05_walk_forward_fold_returns.png)
 
-## Portfolio Design
+The paired walk-forward result remains slightly negative, only two of four
+folds are positive, and one additional execution day materially weakens the
+portfolio. The holdout is short and regime-specific. These results make
+unchanged-rule testing on new data more valuable than further tuning on the
+current sample.
 
-The UBL sleeve combines PaperUBL 3D, UBL_M20 3D, and UBL_M5 5D with internal
-risk budgets of 60%, 20%, and 20%.
+Other unresolved implementation limits are:
 
-At the top level, UBL receives 80% of risk and LOWVOL_60 receives 20%.
-Security-level weights are combined before turnover and transaction costs are
-calculated, so crossing between sleeves is reflected in the reported results.
+- no point-in-time stock-borrow inventory or financing model;
+- no independently calibrated market-impact model;
+- no independent verification of adjusted-price provenance or the pre-2020
+  LOWVOL_60 warm-up inputs;
+- no claim that the public aggregate bundle can reproduce the private
+  security-level strategy.
 
-## Compact Reference Package
+## Portfolio Construction
 
-The public code is a compact, strategy-agnostic reference package for analyzing
-precomputed, directionally oriented factor scores.
+The selected UBL family is treated as one top-level factor sleeve:
 
-It supports:
+| UBL component | Internal risk budget |
+|---|---:|
+| PaperUBL 3D | 60% |
+| UBL_M20 3D | 20% |
+| UBL_M5 5D | 20% |
+
+The top-level allocation is fixed at 80% UBL risk and 20% LOWVOL_60 risk.
+Each sleeve is scaled using training-only realized portfolio volatility.
+Security weights are then:
+
+1. combined across sleeves before costs;
+2. normalized to long gross +1 and short gross -1;
+3. passed through the frozen 7.5 bps security-weight-change band;
+4. checked against lifecycle and tradability rules;
+5. charged transaction costs once on final aggregate trades.
+
+Combining security weights before costs allows opposing sleeve trades to net.
+The reported results do not average standalone net-return series.
+
+The full timing, sample, cost, and metric definitions are in
+[methodology.md](docs/methodology.md). The portfolio decision is discussed in
+[the UBL + LOWVOL case study](docs/case_studies/ubl_lowvol_portfolio.md).
+
+## Public Reference Package
+
+The public code is a compact reference implementation for research that begins
+with precomputed, directionally oriented factor scores. It supports:
 
 - point-in-time timestamp validation and IC/RankIC analysis;
 - dollar-neutral portfolio accounting and security-level weight ledgers;
-- turnover, transaction-cost, Sharpe, and drawdown calculations;
-- paired moving-block bootstrap comparisons and report figures.
+- full and one-way turnover, transaction costs, Sharpe, and drawdown;
+- paired moving-block bootstrap comparisons;
+- reproducible figures and Markdown reports.
 
-A higher `alpha_score` always represents a higher expected return. The runner
-requires:
+The runner enforces:
 
 ```text
 latest_factor_input_timestamp < entry_timestamp < exit_timestamp
+higher alpha_score = higher expected return
 ```
 
-It then records:
-
-- previous, target, and executed security weights;
-- weight changes and full/one-way turnover;
-- gross PnL, security-level cost, and net PnL contributions;
-- Pearson IC and Spearman RankIC;
-- exposure, Sharpe, drawdown, and break-even cost.
-
-Report-derived factor implementations, licensed data, universe selection,
-strategy parameters, borrow modeling, and live execution are not redistributed.
-
-## Run The Public Example
+### Quick Start
 
 Python 3.10 or newer is recommended.
 
 ```bash
+git clone https://github.com/ywuwuwu/cross-sectional-alpha-research.git
 cd cross-sectional-alpha-research
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
-python -m pytest -q tests/test_sample_package.py
-```
-
-Run the anonymous synthetic example:
-
-```bash
+python -m pytest -q
 python examples/run_sample_package.py
 ```
 
-It writes a synthetic input panel, daily results, a security-level weight
+The synthetic example writes a daily result table, security-level weight
 ledger, summary JSON, four plots, and `report.md` under
-`outputs/sample_package/`. The generated performance is a mechanics
-check, not an empirical claim.
+`outputs/sample_package/`. Its performance is a mechanics check, not
+an empirical claim.
 
-Regenerate the six committed portfolio figures from the public aggregate
-CSVs:
-
-```bash
-python examples/render_public_results.py
-```
-
-## Input Schema
+### Input Contract
 
 The generic runner expects one row per factor date and asset:
 
-| Column                          | Meaning                              |
-| ------------------------------- | ------------------------------------ |
-| `factor_date`                   | Date associated with the score       |
+| Column | Meaning |
+|---|---|
+| `factor_date` | Date associated with the score |
 | `latest_factor_input_timestamp` | Latest information used by the score |
-| `entry_timestamp`               | Simulated execution timestamp        |
-| `exit_timestamp`                | Return-measurement endpoint          |
-| `asset`                         | Anonymous or public asset identifier |
-| `alpha_score`                   | Oriented score; higher means better  |
-| `forward_return`                | Realized return strictly after entry |
+| `entry_timestamp` | Simulated execution timestamp |
+| `exit_timestamp` | Return-measurement endpoint |
+| `asset` | Anonymous or public asset identifier |
+| `alpha_score` | Oriented score; higher means better |
+| `forward_return` | Realized return strictly after entry |
 
-## API Example
+### Minimal API
 
 ```python
 import pandas as pd
 
-from alpha_research import (
-    BacktestConfig,
-    Visualizer,
-    run_cross_sectional_backtest,
-)
+from alpha_research import BacktestConfig, Visualizer, run_cross_sectional_backtest
 
 panel = pd.read_csv(
     "oriented_scores_and_returns.csv",
@@ -187,126 +249,48 @@ result = run_cross_sectional_backtest(
 Visualizer(result).save_report("outputs/example_report")
 ```
 
-## Detailed Portfolio Construction
+### Rebuild The Public Figures
 
-**UBL family sleeve**
+All seven public result figures, including the six shown above, are generated
+from the committed aggregate CSVs:
 
-| Component   | Internal risk budget |
-| ----------- | -------------------- |
-| PaperUBL 3D | 60%                  |
-| UBL_M20 3D  | 20%                  |
-| UBL_M5 5D   | 20%                  |
+```bash
+python examples/render_public_results.py
+```
 
-The UBL family first applies the 7.5 bps security-weight-change band selected on
-validation data, and is then treated as one top-level sleeve.
+The complete figure bundle and data dictionary are in
+[examples/sample_outputs/ubl_lowvol_study](examples/sample_outputs/ubl_lowvol_study/README.md).
 
-**Top-level blend**
+## Public Evidence Boundary
 
-| Sleeve     | Risk budget |
-| ---------- | ----------- |
-| UBL family | 80%         |
-| LOWVOL_60  | 20%         |
+The committed aggregate files support independent checks of the published
+tables, figure regeneration, cost sensitivity, paired resampling, and
+walk-forward comparisons. They contain no ticker identifiers.
 
-Each sleeve is divided by training-only realized portfolio volatility. Security
-weights are combined, normalized to long +1 / short -1, passed through a common
-7.5 bps no-trade band, and charged costs on final aggregate trades. Standalone
-net-return series are not averaged.
+They do not include licensed market data, report-derived factor
+implementations, universe membership, private strategy parameters, borrow
+inventory, or security-level portfolio inputs. They therefore do not permit an
+independent rerun of the internal strategy.
 
-## Methodology Summary
+## Documentation
 
-- **Signal timing:** complete data at date `t` is used only for a
-  portfolio entered at the next tradable VWAP.
-- **Direction:** every factor emits an oriented `alpha_score`.
-- **Portfolio:** market-neutral long/short, net exposure 0, gross exposure 2.
-- **Costs:** base 10 bps per dollar traded, applied to full turnover; 5/10/15/20
-  bps sensitivity is reported.
-- **Sample periods:** train 2020, validation first half of 2021, and the viewed
-  chronological holdout from July 2021 through January 2022.
-- **Selection:** budgets, LOWVOL_60 window, UBL family composition, and no-trade
-  rule were set using training and validation before the holdout comparison.
-- **Robustness:** paired same-date resampling, fixed-rule walk-forward folds,
-  cost stress, PnL concentration, delay sensitivity, and exposure checks.
-
-See [methodology.md](docs/methodology.md) for definitions and the
-[point-in-time timing details](docs/methodology.md#point-in-time-timing).
-
-## Additional Results
-
-### Transaction-Cost Frontier
-
-![Transaction-cost frontier](examples/sample_outputs/ubl_lowvol_study/plots/03_transaction_cost_frontier.png)
-
-The blend remains positive at 15 bps on the full common sample, while both
-portfolios are negative at 20 bps.
-
-### Paired Bootstrap Comparison
-
-![Paired bootstrap Sharpe difference](examples/sample_outputs/ubl_lowvol_study/plots/04_paired_bootstrap_sharpe_difference.png)
-
-The plot shows the 5-day moving-block specification with 5,000 resamples. The
-reported 95.2% is the mean frequency across four pre-specified block schemes.
-It is an observed-sample resampling frequency, not a probability of future
-profitability.
-
-The full figure set and data dictionary are in the
-[portfolio output bundle](examples/sample_outputs/ubl_lowvol_study/README.md).
-
-## Published Results And Code Boundary
-
-The committed aggregate CSVs are the inputs to every published table and
-figure. Run `python examples/render_public_results.py` to regenerate the six
-figures without private data.
-
-The aggregate files do not include security-level holdings, licensed market
-data, or report-derived factor implementations. They support review of the
-reported portfolio results, but do not permit an independent rerun of the
-internal security-level strategy.
-
-## Detailed Analysis
-
-- [UBL + LOWVOL portfolio](docs/case_studies/ubl_lowvol_portfolio.md)
+- [Combined UBL + LOWVOL portfolio](docs/case_studies/ubl_lowvol_portfolio.md)
 - [UBL factor family](docs/case_studies/UBL.md)
 - [PaperUBL reconstruction](docs/case_studies/PaperUBL.md)
-- [Candidate results](docs/candidate_outcomes.md)
+- [Candidate outcomes](docs/candidate_outcomes.md)
+- [Methodology and metric definitions](docs/methodology.md)
+- [Aggregate evidence bundle](examples/sample_outputs/ubl_lowvol_study/README.md)
 
-## Interpretation Limits
+## Optional Report-Reproduction Workflow
 
-- The chronological holdout has now been viewed and cannot be reused for
-  selection.
-- Its 133 observations cover a short and regime-specific period.
-- Paired walk-forward performance is negative with only 2/4 positive folds.
-- LOWVOL_60 varies substantially by period: validation Sharpe is near zero,
-  while Sharpe in the observed holdout is higher.
-- An additional day of execution delay cuts the selected full-sample Sharpe to
-  0.46.
-- Borrow availability, financing, market impact, and short-sale constraints are
-  not modeled.
-- The adjusted-price source and pre-2020 LOWVOL_60 warm-up inputs were not
-  independently verified.
-- The reference package illustrates portfolio mechanics; excluded factor
-  implementations and data are required to recreate the reported returns.
-
-The most informative next evidence would be unchanged-rule replication on new
-data with independently checked corporate-action adjustments, borrow
-assumptions, and execution constraints.
-
-## Related Factor Result
-
-Two conventional medium-term momentum definitions were evaluated with a
-pre-specified positive direction and were not selected. Both had negative
-validation RankIC and negative gross and net returns. The pre-specified sign was
-retained throughout evaluation. Details are in
-[candidate_outcomes.md](docs/candidate_outcomes.md).
-
-## Report-Reproduction Template
-
-The optional
+The
 [factor research report reproducer](.agents/skills/factor-research-report-reproducer/SKILL.md)
-supports structured literature review and report drafting. It is separate from
-the internal security-level research engine.
+provides an optional structure for literature review, assumption logging, factor
+specification, and validation checklists. It is separate from the public
+portfolio package and the internal security-level engine.
 
 ## License
 
 Code, documentation, and released artifacts are covered by the
-[MIT License](LICENSE). Published metrics are research artifacts and carry no
-warranty of investment performance.
+[MIT License](LICENSE). Published metrics are simulated research artifacts and
+carry no warranty of investment performance.

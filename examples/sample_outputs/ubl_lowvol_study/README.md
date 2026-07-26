@@ -36,6 +36,10 @@ limit the interpretation of the favorable holdout comparison.
 See the [combined-portfolio case study](../../../docs/case_studies/ubl_lowvol_portfolio.md).
 
 ## Result Figures
+### Observed Holdout Dashboard
+
+![Observed holdout dashboard](plots/00_result_at_a_glance.png)
+
 
 ### Net NAV With Chronological Splits
 
